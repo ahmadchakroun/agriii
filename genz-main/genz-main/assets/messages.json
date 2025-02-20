@@ -1,0 +1,36 @@
+[
+    {
+      "sender": "Alice",
+      "message": "Hello, how are you?",
+      "timestamp": "10:00 AM",
+      "isMe": false,
+      "icon": "assets/images/1.png" 
+    },
+    {
+      "sender": "Me",
+      "message": "I'm good, thanks!",
+      "timestamp": "10:05 AM",
+      "isMe": true,
+      "icon": "assets/images/2.png"},
+    {
+      "sender": "Bob",
+      "message": "Can you send me the report?",
+      "timestamp": "10:10 AM",
+      "isMe": false,
+      "icon": "assets/images/3.png" 
+    },
+    {
+      "sender": "Me",
+      "message": "Sure, I'll send it shortly.",
+      "timestamp": "10:15 AM",
+      "isMe": true,
+      "icon": "assets/images/2.png" 
+    },
+    {
+      "sender": "Charlie",
+      "message": "Let's catch up soon!",
+      "timestamp": "10:20 AM",
+      "isMe": false,
+      "icon": "assets/images/4.png" 
+    }
+  ]
