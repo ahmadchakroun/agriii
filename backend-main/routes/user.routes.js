@@ -3,6 +3,6 @@ const { getUsers } = require("../controllers/user.controller");
 const router = express.Router();
 const { validateToken } = require("../middleware/auth");
 
-router.get("/", validateToken, getUsers);
+router.get("/users", validateToken, getUsers);
 
 module.exports = router;

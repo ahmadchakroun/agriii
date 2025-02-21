@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'signup_screen.dart'; // Importez la page d'inscription
-import 'home_screen.dart'; // Importez la page d'accueil
+import 'package:yoser/api/auth.dart';
+import 'signup_screen.dart';
+import 'home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -9,124 +10,101 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  String _email = '';
+  String _username = '';
   String _password = '';
+  bool _isLoading = false;
 
-  void _login() {
+  final AuthService _authService = AuthService();
+
+  void _login() async {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
-      // Effectuer l'opération de connexion ici
-      print("Email: $_email, Password: $_password");
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => HomeScreen()), // Navigation vers HomeScreen
-      );
+      setState(() => _isLoading = true);
+
+      try {
+        final response = await _authService.login(_username, _password);
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => HomeScreen()),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
+        );
+      } finally {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Login'),
-      ),
+      appBar: AppBar(title: Text('Login')),
       body: Center(
         child: SingleChildScrollView(
-          // Pour permettre le défilement si le clavier est affiché
           padding: const EdgeInsets.all(16.0),
           child: Card(
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20.0), // Bordure arrondie pour la carte
-            ),
-            elevation: 8.0, // Ombre pour donner un effet de profondeur
+                borderRadius: BorderRadius.circular(20.0)),
+            elevation: 8.0,
             child: Padding(
               padding: const EdgeInsets.all(16.0),
               child: Form(
                 key: _formKey,
                 child: Column(
-                  mainAxisSize: MainAxisSize.min, // Ajuste la hauteur au contenu
+                  mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
-                    // Ajout d'un texte centré en haut du formulaire
-                    Text(
-                      'WELCOME TO OUR APPLICATION', // Texte à afficher
-                      style: TextStyle(
-                        fontSize: 24.0, // Taille de la police
-                        fontWeight: FontWeight.bold, // Gras
-                        color: Colors.green, // Couleur du texte
-                      ),
-                      textAlign: TextAlign.center, // Centrer le texte
-                    ),
-                    SizedBox(height: 30), // Espace entre le texte et le formulaire
-
-                    // Champ Email avec forme
+                    Text('WELCOME TO OUR APPLICATION',
+                        style: TextStyle(
+                            fontSize: 24.0,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green),
+                        textAlign: TextAlign.center),
+                    SizedBox(height: 30),
                     TextFormField(
                       decoration: InputDecoration(
-                        labelText: 'Email',
+                        labelText: 'Username',
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10.0), // Bordure arrondie pour le champ
-                        ),
+                            borderRadius: BorderRadius.circular(10.0)),
                       ),
-                      keyboardType: TextInputType.emailAddress,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter your email';
-                        }
-                        return null;
-                      },
-                      onSaved: (value) {
-                        _email = value!;
-                      },
+                      validator: (value) =>
+                          value!.isEmpty ? 'Please enter your username' : null,
+                      onSaved: (value) => _username = value!,
                     ),
-                    SizedBox(height: 15), // Espace entre les champs
-
-                    // Champ Password avec forme
+                    SizedBox(height: 15),
                     TextFormField(
                       decoration: InputDecoration(
                         labelText: 'Password',
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10.0), // Bordure arrondie pour le champ
-                        ),
+                            borderRadius: BorderRadius.circular(10.0)),
                       ),
                       obscureText: true,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter your password';
-                        }
-                        return null;
-                      },
-                      onSaved: (value) {
-                        _password = value!;
-                      },
+                      validator: (value) =>
+                          value!.isEmpty ? 'Please enter your password' : null,
+                      onSaved: (value) => _password = value!,
                     ),
                     SizedBox(height: 20),
-
-                    // Bouton de Connexion
-                    ElevatedButton(
-                      onPressed: _login,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green, // Bouton en vert
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10.0), // Bordure arrondie pour le bouton
-                        ),
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 50.0, // Largeur du bouton
-                          vertical: 15.0, // Hauteur du bouton
-                        ),
-                      ),
-                      child: Text('Login'),
-                    ),
+                    _isLoading
+                        ? CircularProgressIndicator()
+                        : ElevatedButton(
+                            onPressed: _login,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10.0)),
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: 50.0, vertical: 15.0),
+                            ),
+                            child: Text('Login'),
+                          ),
                     SizedBox(height: 20),
-
-                    // Bouton pour aller à la page d'inscription
                     TextButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => SignUpScreen()),
-                        );
-                      },
-                      child: Text('Don\'t have an account? Sign Up'),
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => SignUpScreen()),
+                      ),
+                      child: Text("Don't have an account? Sign Up"),
                     ),
                   ],
                 ),

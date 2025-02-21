@@ -10,9 +10,9 @@ const registerUser = async ({ username, password, email }) => {
   const hashedPassword = await bcrypt.hash(password, 10);
   const newUser = new User({ username, password: hashedPassword, email });
   await newUser.save();
-  return "✅ USER REGISTERED";
-};
 
+  return { message: "✅ USER REGISTERED" }; // ✅ Return JSON instead of a string
+};
 const loginUser = async ({ username, password }) => {
   const user = await User.findOne({ username });
   if (!user) throw new Error("User Doesn't Exist");

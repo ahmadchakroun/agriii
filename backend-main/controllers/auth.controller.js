@@ -3,7 +3,7 @@ const { registerUser, loginUser } = require("../services/auth.service");
 const register = async (req, res) => {
   try {
     const result = await registerUser(req.body);
-    res.json(result);
+    res.status(201).json(result);  // ✅ Ensure a proper JSON response with status code 201
   } catch (error) {
     res.status(400).json({ error: error.message });
   }

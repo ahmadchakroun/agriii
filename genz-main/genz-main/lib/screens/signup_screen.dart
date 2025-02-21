@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:yoser/api/auth.dart'; // Ensure this is your correct import path
 
 class SignUpScreen extends StatefulWidget {
   @override
@@ -7,16 +8,49 @@ class SignUpScreen extends StatefulWidget {
 
 class _SignUpScreenState extends State<SignUpScreen> {
   final _formKey = GlobalKey<FormState>();
-  String _name = '';
-  String _email = '';
-  String _password = '';
-  String _confirmPassword = '';
+  final AuthService _authService = AuthService();
 
-  void _signUp() {
+  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController = TextEditingController();
+
+  bool _isLoading = false;
+
+  void _signUp() async {
     if (_formKey.currentState!.validate()) {
-      _formKey.currentState!.save();
-      // Effectuer l'opération d'inscription ici
-      print("Name: $_name, Email: $_email, Password: $_password");
+      setState(() => _isLoading = true);
+
+      try {
+        await _authService.register(
+          _usernameController.text.trim(),
+          _emailController.text.trim(),
+          _passwordController.text.trim(),
+        );
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("✅ Registration successful! Redirecting to login..."),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        await Future.delayed(Duration(seconds: 1));
+
+        if (!mounted) return; // Prevents calling Navigator if widget is disposed
+
+        Navigator.pushReplacementNamed(context, "/login"); // Navigate to login
+
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("❌ Error: ${e.toString()}"),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+
+      setState(() => _isLoading = false);
     }
   }
 
@@ -25,151 +59,121 @@ class _SignUpScreenState extends State<SignUpScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Sign Up'),
-        backgroundColor: Colors.green, // Couleur de l'AppBar
+        backgroundColor: Colors.green,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: SingleChildScrollView(
           child: Card(
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20.0), // Bordure arrondie
+              borderRadius: BorderRadius.circular(20.0),
             ),
-            elevation: 8.0, // Ombre pour donner de la profondeur
+            elevation: 8.0,
             child: Padding(
               padding: const EdgeInsets.all(20.0),
               child: Form(
                 key: _formKey,
                 child: Column(
-                  mainAxisSize: MainAxisSize.min, // Ajuste la hauteur au contenu
+                  mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
-                    Center(
-                      child: Text(
-                        'WELCOME TO OUR APPLICATION',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.green, // Texte en vert
-                        ),
-                        textAlign: TextAlign.center,
+                    Text(
+                      'WELCOME TO OUR APPLICATION',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.green,
                       ),
+                      textAlign: TextAlign.center,
                     ),
-                    SizedBox(height: 30), // Espacement entre les éléments
-
-                    // Champ Name avec bordure arrondie
+                    SizedBox(height: 30),
                     TextFormField(
+                      controller: _usernameController,
                       decoration: InputDecoration(
-                        labelText: 'Name',
+                        labelText: 'Username',
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10.0), // Bordure arrondie
+                          borderRadius: BorderRadius.circular(10.0),
                         ),
                         filled: true,
-                        fillColor: Colors.grey[100], // Couleur de fond
+                        fillColor: Colors.grey[100],
                       ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter your name';
-                        }
-                        return null;
-                      },
-                      onSaved: (value) {
-                        _name = value!;
-                      },
+                      validator: (value) => value == null || value.isEmpty ? 'Please enter your username' : null,
                     ),
-                    SizedBox(height: 15), // Espacement entre les champs
-
-                    // Champ Email avec bordure arrondie
+                    SizedBox(height: 15),
                     TextFormField(
+                      controller: _emailController,
                       decoration: InputDecoration(
                         labelText: 'Email',
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10.0), // Bordure arrondie
+                          borderRadius: BorderRadius.circular(10.0),
                         ),
                         filled: true,
-                        fillColor: Colors.grey[100], // Couleur de fond
+                        fillColor: Colors.grey[100],
                       ),
                       keyboardType: TextInputType.emailAddress,
                       validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter your email';
+                        if (value == null || value.isEmpty) return 'Please enter your email';
+                        if (!RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$').hasMatch(value)) {
+                          return 'Enter a valid email';
                         }
                         return null;
                       },
-                      onSaved: (value) {
-                        _email = value!;
-                      },
                     ),
                     SizedBox(height: 15),
-
-                    // Champ Password avec bordure arrondie
                     TextFormField(
+                      controller: _passwordController,
                       decoration: InputDecoration(
                         labelText: 'Password',
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10.0), // Bordure arrondie
+                          borderRadius: BorderRadius.circular(10.0),
                         ),
                         filled: true,
-                        fillColor: Colors.grey[100], // Couleur de fond
+                        fillColor: Colors.grey[100],
                       ),
                       obscureText: true,
                       validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter your password';
-                        }
+                        if (value == null || value.isEmpty) return 'Please enter your password';
+                        if (value.length < 6) return 'Password must be at least 6 characters';
                         return null;
-                      },
-                      onSaved: (value) {
-                        _password = value!;
                       },
                     ),
                     SizedBox(height: 15),
-
-                    // Champ Confirm Password avec bordure arrondie
                     TextFormField(
+                      controller: _confirmPasswordController,
                       decoration: InputDecoration(
                         labelText: 'Confirm Password',
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10.0), // Bordure arrondie
+                          borderRadius: BorderRadius.circular(10.0),
                         ),
                         filled: true,
-                        fillColor: Colors.grey[100], // Couleur de fond
+                        fillColor: Colors.grey[100],
                       ),
                       obscureText: true,
                       validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please confirm your password';
-                        } else if (value != _password) {
-                          return 'Passwords do not match';
-                        }
+                        if (value == null || value.isEmpty) return 'Please confirm your password';
+                        if (value != _passwordController.text) return 'Passwords do not match';
                         return null;
                       },
                     ),
                     SizedBox(height: 20),
-
-                    // Bouton d'inscription stylé
                     ElevatedButton(
-                      onPressed: _signUp,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 50.0, vertical: 15.0),
-                        child: Text(
-                          'Create',
-                          style: TextStyle(fontSize: 16.0),
-                        ),
-                      ),
+                      onPressed: _isLoading ? null : _signUp,
+                      child: _isLoading
+                          ? CircularProgressIndicator(color: Colors.white)
+                          : Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 50.0, vertical: 15.0),
+                              child: Text('Create', style: TextStyle(fontSize: 16.0)),
+                            ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green, // Couleur du bouton
+                        backgroundColor: Colors.green,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10.0), // Bordure arrondie
+                          borderRadius: BorderRadius.circular(10.0),
                         ),
-                        elevation: 5.0, // Ombre pour un effet de relief
+                        elevation: 5.0,
                       ),
                     ),
                     SizedBox(height: 20),
-
-                    // Bouton pour retourner à la page de connexion
                     TextButton(
-                      onPressed: () {
-                        Navigator.pop(context); // Retour à l'écran de connexion
-                      },
+                      onPressed: () => Navigator.pop(context),
                       child: Text(
                         'Already have an account? Login',
                         style: TextStyle(color: Colors.green),
