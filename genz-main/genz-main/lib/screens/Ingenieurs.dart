@@ -1,7 +1,10 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:yoser/api/ingenieur_service.dart';
+import 'package:yoser/screens/message.dart';
 import '../widgets/base_screen.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'about_screen.dart'; // Import the AboutScreen
+
 
 class IngenieursScreen extends StatefulWidget {
   @override
@@ -9,41 +12,50 @@ class IngenieursScreen extends StatefulWidget {
 }
 
 class _IngenieursScreenState extends State<IngenieursScreen> {
-  late Future<List<dynamic>> _productsFuture;
-  List<dynamic> _allProducts = [];
-  List<dynamic> _filteredProducts = [];
+  late Future<List<dynamic>> _ingenieursFuture;
+  List<dynamic> _allIngenieurs = [];
+  List<dynamic> _filteredIngenieurs = [];
   String _searchQuery = '';
+  final FlutterSecureStorage _storage = FlutterSecureStorage();
 
   @override
   void initState() {
     super.initState();
-    _loadProducts().then((products) {
-      setState(() {
-        _allProducts = products;
-        _filteredProducts = products;
-      });
-    });
+    _checkStoredToken();
+    _fetchIngenieurs();
   }
 
-  Future<List<dynamic>> _loadProducts() async {
+  Future<void> _checkStoredToken() async {
+    String? token = await _storage.read(key: 'token');
+    print("Stored Token: $token"); // Debugging step
+  }
+
+  Future<void> _fetchIngenieurs() async {
     try {
-      final String response = await rootBundle.loadString('assets/biens_agricoles.json');
-      final List<dynamic> data = json.decode(response) as List<dynamic>;
-      return data;
+      String? token = await _storage.read(key: 'jwt_token'); // Retrieve JWT token
+      print("🔑 Retrieved Token: $token"); // Debugging
+      if (token == null) {
+        throw Exception('User is not authenticated');
+      }
+
+      final ingenieurs = await IngenieurService.fetchIngenieurs(token);
+      setState(() {
+        _allIngenieurs = ingenieurs;
+        _filteredIngenieurs = ingenieurs;
+      });
     } catch (e) {
-      print('Error loading products: $e');
-      return [];
+      print('Error fetching Ingenieurs: $e');
     }
   }
 
-  void _filterProducts(String query) {
+  void _filterIngenieurs(String query) {
     setState(() {
       _searchQuery = query;
-      _filteredProducts = _allProducts.where((product) {
-        final title = product['title'].toLowerCase();
-        final description = product['description'].toLowerCase();
+      _filteredIngenieurs = _allIngenieurs.where((ingenieur) {
+        final name = ingenieur['username'].toLowerCase();
+        final email = ingenieur['email'].toLowerCase();
         final searchLower = query.toLowerCase();
-        return title.contains(searchLower) || description.contains(searchLower);
+        return name.contains(searchLower) || email.contains(searchLower);
       }).toList();
     });
   }
@@ -56,7 +68,7 @@ class _IngenieursScreenState extends State<IngenieursScreen> {
       child: Scaffold(
         appBar: AppBar(
           title: Text(
-            'BIENS AGRICOLES',
+            'Ingenieurs',
             style: TextStyle(
               color: Color.fromRGBO(76, 175, 80, 1),
               fontWeight: FontWeight.bold,
@@ -71,36 +83,31 @@ class _IngenieursScreenState extends State<IngenieursScreen> {
             },
           ),
         ),
-        body: Stack(
-          children: [
-           
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                children: [
-                  _buildSearchBar(),
-                  SizedBox(height: 10),
-                  _buildFilterBar(),
-                  SizedBox(height: 10),
-                  Expanded(
-                    child: _filteredProducts.isNotEmpty
-                        ? ListView.separated(
-                            padding: EdgeInsets.only(top: 16.0),
-                            itemCount: _filteredProducts.length,
-                            separatorBuilder: (context, index) => SizedBox(height: 16),
-                            itemBuilder: (context, index) {
-                              final product = _filteredProducts[index];
-                              return _buildProductCard(product);
-                            },
-                          )
-                        : Center(
-                            child: Text('No products found'),
-                          ),
-                  ),
-                ],
+        body: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              _buildSearchBar(),
+              SizedBox(height: 10),
+              _buildFilterBar(),
+              SizedBox(height: 10),
+              Expanded(
+                child: _filteredIngenieurs.isNotEmpty
+                    ? ListView.separated(
+                        padding: EdgeInsets.only(top: 16.0),
+                        itemCount: _filteredIngenieurs.length,
+                        separatorBuilder: (context, index) => SizedBox(height: 16),
+                        itemBuilder: (context, index) {
+                          final ingenieur = _filteredIngenieurs[index];
+                          return _buildIngenieurCard(ingenieur);
+                        },
+                      )
+                    : Center(
+                        child: Text('No Ingenieurs found'),
+                      ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -119,13 +126,13 @@ class _IngenieursScreenState extends State<IngenieursScreen> {
           borderSide: BorderSide.none,
         ),
       ),
-      onChanged: (query) => _filterProducts(query),
+      onChanged: (query) => _filterIngenieurs(query),
     );
   }
 
   Widget _buildFilterBar() {
     return Container(
-      padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      padding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
       decoration: BoxDecoration(
         color: Colors.grey.shade200,
         borderRadius: BorderRadius.circular(8),
@@ -133,19 +140,7 @@ class _IngenieursScreenState extends State<IngenieursScreen> {
       child: Row(
         children: [
           Expanded(child: _buildFilterButton('Region')),
-          Container(
-            height: 24,
-            width: 1,
-            color: Colors.grey.shade400,
-            margin: EdgeInsets.symmetric(horizontal: 8),
-          ),
           Expanded(child: _buildFilterButton('Nature')),
-          Container(
-            height: 24,
-            width: 1,
-            color: Colors.grey.shade400,
-            margin: EdgeInsets.symmetric(horizontal: 8),
-          ),
           Expanded(child: _buildFilterButton('Type')),
         ],
       ),
@@ -161,9 +156,9 @@ class _IngenieursScreenState extends State<IngenieursScreen> {
     );
   }
 
-  Widget _buildProductCard(Map<String, dynamic> product) {
+  Widget _buildIngenieurCard(Map<String, dynamic> ingenieur) {
     return Container(
-      width: 410,
+      width: double.infinity,
       height: 169,
       decoration: BoxDecoration(
         color: Colors.white,
@@ -180,17 +175,24 @@ class _IngenieursScreenState extends State<IngenieursScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // Rectangular image on the left
           Expanded(
             flex: 2,
             child: ClipRRect(
               borderRadius: BorderRadius.horizontal(left: Radius.circular(8)),
-              child: Image.asset(
-                product['imageUrl'],
-                fit: BoxFit.cover,
-              ),
+              child: ingenieur['image'] != null
+                  ? Image.network(
+                      ingenieur['image'], // Use the user's image URL from the backend
+                      fit: BoxFit.cover,
+                    )
+                  : Image.asset(
+                      'assets/images/1.png', // Fallback to a local placeholder
+                      fit: BoxFit.cover,
+                    ),
             ),
           ),
           SizedBox(width: 12),
+          // User details and buttons
           Expanded(
             flex: 3,
             child: Padding(
@@ -198,27 +200,60 @@ class _IngenieursScreenState extends State<IngenieursScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Username
                   Text(
-                    product['title'],
+                    ingenieur['username'],
                     style: TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   SizedBox(height: 6),
+                  // Email
                   Text(
-                    product['description'],
+                    ingenieur['email'],
                     style: TextStyle(
                       fontSize: 13,
                       color: Colors.grey,
                     ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   Spacer(),
+                  // Buttons
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      _buildActionButton('Message', Icons.message),
-                      _buildActionButton('consultation', Icons.favorite),
+                      // Message button
+                      _buildActionButton(
+                        context,
+                        'Message',
+                        Icons.message,
+                        Colors.green,
+                        () {
+                          // Navigate to MessageScreen
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => MessageScreen()),
+                          );
+                        },
+                      ),
+                      // Consultation button
+                      _buildActionButton(
+                        context,
+                        'Consultation',
+                        Icons.info,
+                        Colors.white, // White background
+                        () {
+                          // Navigate to AboutScreen
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => AboutScreen()),
+                          );
+                        },
+                        textColor: Colors.green, // Green text
+                        borderColor: Colors.green, // Green border
+                      ),
                     ],
                   ),
                 ],
@@ -230,29 +265,38 @@ class _IngenieursScreenState extends State<IngenieursScreen> {
     );
   }
 
-  Widget _buildActionButton(String label, IconData icon) {
-    return Container(
-      padding: EdgeInsets.symmetric(vertical: 6, horizontal: 12),
-      decoration: BoxDecoration(
-        color: label == 'Buy' ? Colors.green : Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: label == 'Buy' ? Colors.white : Colors.green, size: 20),
-          SizedBox(width: 8),
-          Text(
-            label,
-            style: TextStyle(
-              color: label == 'Buy' ? Colors.white : Colors.green,
-              fontWeight: FontWeight.bold,
+  Widget _buildActionButton(
+    BuildContext context,
+    String label,
+    IconData icon,
+    Color backgroundColor,
+    VoidCallback onPressed, {
+    Color textColor = Colors.white, // Default text color
+    Color borderColor = Colors.transparent, // Default border color
+  }) {
+    return GestureDetector(
+      onTap: onPressed,
+      child: Container(
+        padding: EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+        decoration: BoxDecoration(
+          color: backgroundColor,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: borderColor),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: textColor, size: 20),
+            SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: textColor,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
-
-  
 }

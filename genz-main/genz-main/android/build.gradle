@@ -16,7 +16,12 @@ allprojects {
         mavenCentral()
     }
 }
-
+android {
+    compileSdkVersion 33
+    defaultConfig {
+        minSdkVersion 23
+    }
+}
 rootProject.buildDir = '../build'
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"

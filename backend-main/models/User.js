@@ -7,7 +7,12 @@ const UserSchema = new mongoose.Schema({
   image: { type: String },
   about: { type: String },
   postsPublished: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Post' }], // Liste des posts publiés
-  postsBought: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Post' }] // Liste des posts achetés
+  postsBought: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Post' }] ,
+  favorites: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }] ,// Add this
+  userType: { 
+    type: String, 
+    enum: ["Ingenieurs", "Bureau d’étude"]
+  },
 });
 
 const User = mongoose.model('User', UserSchema);
