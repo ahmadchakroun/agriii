@@ -69,26 +69,26 @@ const updateUserById = async (userId, updateData) => {
   return { message: "✅ USER UPDATED", user: updatedUser };
 };
 // Add to Favorites
+const getFavoriteUsers = async (userId) => {
+  const user = await User.findById(userId)
+    .populate("favorites", "username email")
+    .select("favorites");
+  
+  if (!user) throw new Error("User not found");
+  return user.favorites;
+};
+
 const addToFavorites = async (userId, favoriteUserId) => {
   const user = await User.findById(userId);
-  const favoriteUser = await User.findById(favoriteUserId);
-
-  if (!user || !favoriteUser) throw new Error("User not found");
-
+  
+  if (!user) throw new Error("User not found");
+  
+  // Prevent duplicate favorites
   if (!user.favorites.includes(favoriteUserId)) {
     user.favorites.push(favoriteUserId);
     await user.save();
   }
-
-  return { message: "✅ USER ADDED TO FAVORITES" };
+  
+  return user.populate("favorites", "username email");
 };
-
-// Get List of Favorited Users
-const getFavoriteUsers = async (userId) => {
-  const user = await User.findById(userId).populate("favorites", "username email");
-  if (!user) throw new Error("User not found");
-
-  return { favorites: user.favorites };
-};
-
 module.exports = { registerUser, loginUser, updateUserById, addToFavorites, getFavoriteUsers };

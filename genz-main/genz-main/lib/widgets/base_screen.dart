@@ -40,11 +40,7 @@ class BaseScreen extends StatelessWidget {
                       MaterialPageRoute(
                           builder: (context) => const HomeScreen()),
                     );
-                  } else if (index == 2) {
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (context) => AboutScreen()),
-                    );
+                  
                   } else if (index == 2) {
                     Navigator.pushReplacement(
                       context,

@@ -8,7 +8,20 @@ const getUsers = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+const getUserById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await User.findById(id).select("-password");
 
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    res.status(200).json(user);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
 const getUsersByType = async (req, res) => {
   try {
     const { type } = req.params;
@@ -27,4 +40,4 @@ const getUsersByType = async (req, res) => {
   }
 };
 
-module.exports = { getUsers, getUsersByType };
+module.exports = { getUsers, getUsersByType ,getUserById};

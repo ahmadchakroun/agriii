@@ -25,33 +25,37 @@ const login = async (req, res) => {
 };
 const update = async (req, res) => {
   try {
-    const { id } = req.params; // Get user ID from URL
-    const updateData = req.body; // Get update data from request body
+    // Get user ID from token instead of URL params
+    const userId = req.user.id;
+    const updateData = req.body;
 
-    console.log("Request Body:", req.body); // Debugging
+    console.log("Updating user ID:", userId); // Debugging
+    console.log("Update Data:", updateData); // Debugging
 
-    const result = await updateUserById(id, updateData);
+    const result = await updateUserById(userId, updateData);
     res.status(200).json(result);
   } catch (error) {
-    console.error("Error in update:", error); // Debugging
+    console.error("Error in update:", error);
     res.status(400).json({ error: error.message });
   }
 };
 // Add to Favorites
-const favorite = async (req, res) => {
+const getFavorites = async (req, res) => {
   try {
-    const result = await addToFavorites(req.user.id, req.params.favoriteUserId);
-    res.status(200).json(result);
+    const favorites = await getFavoriteUsers(req.user.id);
+    res.status(200).json({ favorites });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
 };
 
-// Get List of Favorited Users
-const getFavorites = async (req, res) => {
+const favorite = async (req, res) => {
   try {
-    const result = await getFavoriteUsers(req.user.id);
-    res.status(200).json(result);
+    const updatedUser = await addToFavorites(
+      req.user.id,
+      req.params.favoriteUserId
+    );
+    res.status(200).json(updatedUser);
   } catch (error) {
     res.status(400).json({ error: error.message });
   }

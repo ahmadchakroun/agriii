@@ -19,6 +19,7 @@ const validateToken = (req, res, next) => {
     const validToken = verify(accessToken, process.env.JWT_SECRET);
     if (validToken) {
       req.authenticated = true;
+      req.user = { id: decoded.id };
       return next();
     }
   } catch (err) {

@@ -239,21 +239,23 @@ class _IngenieursScreenState extends State<IngenieursScreen> {
                         },
                       ),
                       // Consultation button
-                      _buildActionButton(
-                        context,
-                        'Consultation',
-                        Icons.info,
-                        Colors.white, // White background
-                        () {
-                          // Navigate to AboutScreen
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => AboutScreen()),
-                          );
-                        },
-                        textColor: Colors.green, // Green text
-                        borderColor: Colors.green, // Green border
-                      ),
+                     // Update the Consultation button in _buildIngenieurCard
+_buildActionButton(
+  context,
+  'Consultation',
+  Icons.info,
+  Colors.white,
+  () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AboutScreen(userId: ingenieur['_id']),
+      ),
+    );
+  },
+  textColor: Colors.green,
+  borderColor: Colors.green,
+),
                     ],
                   ),
                 ],

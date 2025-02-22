@@ -6,6 +6,10 @@ const UserSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   image: { type: String },
   about: { type: String },
+  phone: { type: String },
+  address: { type: String },
+
+
   postsPublished: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Post' }], // Liste des posts publiés
   postsBought: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Post' }] ,
   favorites: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }] ,// Add this

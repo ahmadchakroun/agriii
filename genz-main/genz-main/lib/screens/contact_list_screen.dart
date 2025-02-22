@@ -1,7 +1,7 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:yoser/api/contact_service.dart';
 import 'package:yoser/screens/about_screen.dart';
+import 'package:yoser/screens/message.dart';
 import '../widgets/base_screen.dart';
 
 class ContactListScreen extends StatefulWidget {
@@ -10,23 +10,18 @@ class ContactListScreen extends StatefulWidget {
 }
 
 class _ContactListScreenState extends State<ContactListScreen> {
-  late Future<List<dynamic>> _usersFuture;
+  late Future<List<dynamic>> _favoritesFuture;
 
   @override
   void initState() {
     super.initState();
-    _usersFuture = _loadUsers();
+    _refreshData();
   }
 
-  Future<List<dynamic>> _loadUsers() async {
-    try {
-      final String response = await rootBundle.loadString('assets/users.json');
-      final List<dynamic> data = json.decode(response) as List<dynamic>;
-      return data;
-    } catch (e) {
-      print('Error loading users: $e');
-      return [];
-    }
+  void _refreshData() {
+    setState(() {
+      _favoritesFuture = ContactService.getFavoriteUsers();
+    });
   }
 
   @override
@@ -47,49 +42,53 @@ class _ContactListScreenState extends State<ContactListScreen> {
           elevation: 0,
           leading: IconButton(
             icon: Icon(Icons.arrow_back, color: Colors.green),
-            onPressed: () {
-              Navigator.pop(context);
-            },
+            onPressed: () => Navigator.pop(context),
           ),
         ),
         body: Stack(
           children: [
-            _buildBackgroundImage(112.04, 96.6, -120,
-                'assets/images/background.png', 101.87, 100.08),
-            _buildBackgroundImage(158.36, 383.1, 118.65,
-                'assets/images/background.png', 144.13, 141.59),
-            _buildBackgroundImage(461.47, 315.62, 58.41,
-                'assets/images/background.png', 144.13, 141.59),
-            _buildBackgroundImage(803.8, 363.16, 70.53,
-                'assets/images/background.png', 82.88, 81.42),
-            FutureBuilder<List<dynamic>>(
-              future: _usersFuture,
-              builder: (context, snapshot) {
-                if (snapshot.hasData) {
-                  final users = snapshot.data!;
-                  return ListView.separated(
-                    padding: EdgeInsets.all(16.0),
-                    itemCount: users.length,
-                    separatorBuilder: (context, index) => SizedBox(height: 16),
-                    itemBuilder: (context, index) {
-                      final user = users[index];
-                      return _buildUserCard(user);
-                    },
+            _buildBackgroundImages(),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: FutureBuilder<List<dynamic>>(
+                future: _favoritesFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Center(child: CircularProgressIndicator());
+                  }
+                  if (snapshot.hasError) {
+                    return Center(child: Text('Error loading contacts'));
+                  }
+                  final users = snapshot.data ?? [];
+                  if (users.isEmpty) {
+                    return Center(child: Text('No favorite contacts found'));
+                  }
+                  return RefreshIndicator(
+                    onRefresh: () async => _refreshData(),
+                    child: ListView.separated(
+                      padding: EdgeInsets.only(top: 16.0),
+                      itemCount: users.length,
+                      separatorBuilder: (context, index) => SizedBox(height: 16),
+                      itemBuilder: (context, index) => _buildUserCard(users[index]),
+                    ),
                   );
-                } else if (snapshot.hasError) {
-                  return Center(
-                    child: Text('Error loading users'),
-                  );
-                } else {
-                  return Center(
-                    child: CircularProgressIndicator(),
-                  );
-                }
-              },
+                },
+              ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildBackgroundImages() {
+    return Stack(
+      children: [
+        _buildBackgroundImage(112.04, 96.6, -120, 'assets/images/background.png', 101.87, 100.08),
+        _buildBackgroundImage(158.36, 383.1, 118.65, 'assets/images/background.png', 144.13, 141.59),
+        _buildBackgroundImage(461.47, 315.62, 58.41, 'assets/images/background.png', 144.13, 141.59),
+        _buildBackgroundImage(803.8, 363.16, 70.53, 'assets/images/background.png', 82.88, 81.42),
+      ],
     );
   }
 
@@ -114,7 +113,7 @@ class _ContactListScreenState extends State<ContactListScreen> {
 
   Widget _buildUserCard(Map<String, dynamic> user) {
     return Container(
-      width: 410,
+      width: double.infinity,
       height: 169,
       decoration: BoxDecoration(
         color: Colors.white,
@@ -135,10 +134,7 @@ class _ContactListScreenState extends State<ContactListScreen> {
             flex: 2,
             child: ClipRRect(
               borderRadius: BorderRadius.horizontal(left: Radius.circular(8)),
-              child: Image.asset(
-                user['imageUrl'],
-                fit: BoxFit.cover,
-              ),
+              child: _buildUserImage(user),
             ),
           ),
           SizedBox(width: 12),
@@ -150,7 +146,7 @@ class _ContactListScreenState extends State<ContactListScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    user['name'],
+                    user['username'] ?? 'Unknown User',
                     style: TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.bold,
@@ -158,84 +154,43 @@ class _ContactListScreenState extends State<ContactListScreen> {
                   ),
                   SizedBox(height: 6),
                   Text(
-                    'but also the leap into electronic typesetting',
+                    user['email'] ?? 'No email provided',
                     style: TextStyle(
                       fontSize: 13,
                       color: Colors.grey,
                     ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   Spacer(),
-                  Column(
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Container(
-                        width: 157,
-                        height: 30,
-                        padding: EdgeInsets.symmetric(vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.green,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: InkWell(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => AboutScreen()),
-                            );
-                          },
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Icon(Icons.send, color: Colors.white, size: 20),
-                              SizedBox(width: 8),
-                              Text(
-                                'Message',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
+                      _buildActionButton(
+                        'Message',
+                        Icons.send,
+                        Colors.green,
+                        () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => MessageScreen()),
                         ),
                       ),
-                      SizedBox(height: 5),
-                      Container(
-                        width: 157,
-                        height: 30,
-                        padding: EdgeInsets.symmetric(vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.grey),
-                        ),
-                        child: InkWell(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) =>
-                                      AboutScreen()), // massagescreen
-                            );
-                          },
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Icon(Icons.info, color: Colors.green, size: 20),
-                              SizedBox(width: 8),
-                              Text(
-                                'Consultation',
-                                style: TextStyle(
-                                  color: Colors.green,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
+                      _buildActionButton(
+  'Consultation',
+  Icons.info,
+  Colors.white,
+  () async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AboutScreen(userId: user['_id']),
+      ),
+    );
+    _refreshData(); // Refresh after returning from AboutScreen
+  },
+  textColor: Colors.green,
+  borderColor: Colors.green,
+),
                     ],
                   ),
                 ],
@@ -243,6 +198,58 @@ class _ContactListScreenState extends State<ContactListScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildUserImage(Map<String, dynamic> user) {
+    final imageUrl = user['imageUrl']?.toString() ?? '';
+    return imageUrl.isNotEmpty
+        ? Image.network(
+            imageUrl,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) => _buildFallbackImage(),
+          )
+        : _buildFallbackImage();
+  }
+
+  Widget _buildFallbackImage() {
+    return Image.asset(
+      'assets/images/1.png',
+      fit: BoxFit.cover,
+    );
+  }
+
+  Widget _buildActionButton(
+    String label,
+    IconData icon,
+    Color backgroundColor,
+    VoidCallback onPressed, {
+    Color textColor = Colors.white,
+    Color borderColor = Colors.transparent,
+  }) {
+    return GestureDetector(
+      onTap: onPressed,
+      child: Container(
+        padding: EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+        decoration: BoxDecoration(
+          color: backgroundColor,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: borderColor),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: textColor, size: 20),
+            SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: textColor,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

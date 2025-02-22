@@ -8,8 +8,7 @@ router.post("/register", register);
 router.post("/login", login);
 
 router.put("/update/:id", validateToken, update);
-router.post("/favorites/:favoriteUserId", validateToken, favorite); 
+router.post("/favorites/:favoriteUserId", validateToken, favorite);
 router.get("/favorites", validateToken, getFavorites);
-
 
 module.exports = router;

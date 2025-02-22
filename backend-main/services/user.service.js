@@ -3,6 +3,9 @@ const User = require("../models/User");
 const getAllUsers = async () => {
   return await User.find();
 };
+const getUserById = async (id) => {
+  return await User.findById(id).select("-password");
+};
 const getUsersByType = async (req, res) => {
   try {
     const { type } = req.params;
@@ -20,4 +23,4 @@ const getUsersByType = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-module.exports = { getAllUsers,getUsersByType };
+module.exports = { getAllUsers,getUsersByType , getUserById};
